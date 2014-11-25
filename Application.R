@@ -1,4 +1,5 @@
 setwd(dir = "C:/Users/Timothée/Documents/GitHub/CarpentryExercise/")
+library("S4imul")
 
 ################ Random seed
 set.seed(12)
@@ -33,9 +34,9 @@ for(YR in 1:10){
   HuntingAlive<-as.numeric(lapply(pop[ALIVE],Hunting))
   HunterQualities<- abs(HuntingAlive - mean(HuntingAlive)) # here the most original individuals have a strong advantage in the competition (f-dpd selection)
   if(sum(HunterQualities)==0){HunterQualities=rep(x=1,length(HunterQualities))}
-  
   podium<-table(factor(sample(as.character(ALIVE),size=camembert,replace=T,prob=HunterQualities),levels=ALIVE))
   camams<-as.numeric(podium[match(ALIVE,names(podium))])
+  
   pop[ALIVE]<-lapply(1:length(ALIVE), function(x) Food(pop[[ALIVE[x]]],camams[x]))
   
   #### Survival
@@ -88,13 +89,7 @@ for(YR in 1:10){
   if(from!=CID){
     ALIVE<-c(ALIVE,(from):(CID-1))
   }
-  ### Everything should be written to a dataframe, to make sure we have all the values for ever and ever
-  for(i in ALIVE){
-    cat("\n",YR,"\t",pop[[i]]@ID,"\t",pop[[i]]@size,"\t",pop[[i]]@bvs,"\t",pop[[i]]@hunting,"\t",pop[[i]]@bvh,"\t",pop[[i]]@camemberts,"\t",pop[[i]]@sex,"\t",pop[[i]]@ARS,"\t",pop[[i]]@age,"\t",pop[[i]]@pID[1],"\t",pop[[i]]@pID[2],"\t",1,file=filename,append=TRUE)
-  }
-  for(i in DEAD){
-    cat("\n",YR,"\t",pop[[i]]@ID,"\t",pop[[i]]@size,"\t",pop[[i]]@bvs,"\t",pop[[i]]@hunting,"\t",pop[[i]]@bvh,"\t",pop[[i]]@camemberts,"\t",pop[[i]]@sex,"\t",pop[[i]]@ARS,"\t",pop[[i]]@age,"\t",pop[[i]]@pID[1],"\t",pop[[i]]@pID[2],"\t",0,file=filename,append=TRUE)
-  }
+  dfwrite(pop=pop,ALIVE=ALIVE,DEAD=DEAD)
 }
 
 

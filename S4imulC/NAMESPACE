@@ -1,0 +1,3 @@
+useDynLib(S4imulC)
+exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp, evalCpp)

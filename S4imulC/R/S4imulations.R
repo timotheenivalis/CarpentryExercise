@@ -3,64 +3,40 @@
 
 ################ Base population parameters
 MeanBirthSize<-10
+
 meanGrowth<-prod(runif(10000,0.9,1.2))^(1/10000)
 MeanRepro<-2
 survivalPenaltyForRepro<-0
 
-SDZ<-1
-SDH<-1
 ############### Genetic determinisms ###############
+FunctionGvalues<-function(nbLoci=10,nbAlleles=10,dominance=0.5,overdominance=0,SD=1)
+{
+  gvaluesZ<-array(data=NA,dim=c(nbAlleles,nbAlleles,nbLoci),dimnames=list(paste("A",1: nbAlleles,sep=""),paste("A",1: nbAlleles,sep=""),paste("L",1:nbLoci,sep=""))) # Initialising a matrix that will contain the genotypic effects on the/a trait
+  
+  for(L in 1:nbLoci)
+  {
+    # Setting the effects for the homozygotes [all loci]
+    effect<-abs(rnorm(n=1,mean=0,sd=SD))# alter the locus importance in a realistic way (many small-effect loci, few major loci)
+    diag(gvaluesZ[,,L])<-2*rnorm(n=dim(gvaluesZ)[1],mean=0,sd=effect)
+    # Setting the effects for the heterozygotes
+    for(A in 1:(nbAlleles-1))# loop for off-diagonal = heterozygotes (additive and dominance effects)
+    {
+      for (D in (A+1):nbAlleles)
+      {
+        d<-dominance*runif(n=1,min=-0.5-overdominance,max=0.5+overdominance)
+        gvaluesZ[A,D,L]<-(0.5-d)*gvaluesZ[A,A,L]+(0.5+d)*gvaluesZ[D,D,L] # mean of additive effects + dominance, over diagonal
+        gvaluesZ[D,A,L]<-(0.5-d)*gvaluesZ[A,A,L]+(0.5+d)*gvaluesZ[D,D,L] # the same below diagonal    
+      }
+    }
+  }
+  return(gvaluesZ)
+}
 ############### Genetic determinism Z
-dominance<-1 # for additive effects only, must be 0
-overdominance<-0 # non-null values generate overdominance
 
-nbLoci<-10 #number of loci controling the trait phenotype
-nbAlleles<-10 #number of existing alleles per loci
+gvaluesZ<-FunctionGvalues(nbLoci = 10,nbAlleles = 10,dominance = 0.1,overdominance = 0,SD=1)
 
-gvaluesZ<-array(data=NA,dim=c(nbAlleles,nbAlleles,nbLoci),dimnames=list(paste("A",1: nbAlleles,sep=""),paste("A",1: nbAlleles,sep=""),paste("L",1:nbLoci,sep=""))) # Initialising a matrix that will contain the genotypic effects on the/a trait
-
-for(L in 1:nbLoci)
-{
-  # Setting the effects for the homozygotes [all loci]
-  effect<-abs(rnorm(n=1,mean=0,sd=SDZ))# alter the locus importance in a realistic way (many small-effect loci, few major loci)
-  diag(gvaluesZ[,,L])<-2*rnorm(n=dim(gvaluesZ)[1],mean=0,sd=effect)
-  # Setting the effects for the heterozygotes
-  for(A in 1:(nbAlleles-1))# loop for off-diagonal = heterozygotes (additive and dominance effects)
-  {
-    for (D in (A+1):nbAlleles)
-    {
-      d<-dominance*runif(n=1,min=-0.5-overdominance,max=0.5+overdominance)
-      gvaluesZ[A,D,L]<-(0.5-d)*gvaluesZ[A,A,L]+(0.5+d)*gvaluesZ[D,D,L] # mean of additive effects + dominance, over diagonal
-      gvaluesZ[D,A,L]<-(0.5-d)*gvaluesZ[A,A,L]+(0.5+d)*gvaluesZ[D,D,L] # the same below diagonal    
-    }
-  }
-}
 ############### Genetic determinism H 
-dominance<-1 # for additive effects only, must be 0
-overdominance<-0 # non-null values generate overdominance
-
-nbLoci<-10 #number of loci controling the trait phenotype
-nbAlleles<-10 #number of existing alleles per loci
-
-gvaluesH<-array(data=NA,dim=c(nbAlleles,nbAlleles,nbLoci),dimnames=list(paste("A",1: nbAlleles,sep=""),paste("A",1: nbAlleles,sep=""),paste("L",1:nbLoci,sep=""))) # Initialising a matrix that will contain the genotypic effects on the/a trait
-
-for(L in 1:nbLoci)
-{
-  # Setting the effects for the homozygotes [all loci]
-  effect<-abs(rnorm(n=1,mean=0,sd=SDH))# alter the locus importance in a realistic way (many small-effect loci, few major loci)
-  diag(gvaluesH[,,L])<-2*rnorm(n=dim(gvaluesH)[1],mean=0,sd=effect)
-  # Setting the effects for the heterozygotes
-  for(A in 1:(nbAlleles-1))# loop for off-diagonal = heterozygotes (additive and dominance effects)
-  {
-    for (D in (A+1):nbAlleles)
-    {
-      d<-dominance*runif(n=1,min=-0.5-overdominance,max=0.5+overdominance)
-      gvaluesH[A,D,L]<-(0.5-d)*gvaluesH[A,A,L]+(0.5+d)*gvaluesH[D,D,L] # mean of additive effects + dominance, over diagonal
-      gvaluesH[D,A,L]<-(0.5-d)*gvaluesH[A,A,L]+(0.5+d)*gvaluesH[D,D,L] # the same below diagonal    
-    }
-  }
-}
-
+gvaluesH<-FunctionGvalues(nbLoci = 10,nbAlleles = 10,dominance = 0.5,overdominance = 0,SD=1)
 
 ############### Definition of the class ############
 setClass(
@@ -149,6 +125,8 @@ bathtub<-function(age){
   p[p>1]<-1
   return(p)
 }
+
+
 # Incorporate the effect of size to the survival function
 sizeSurvival<-function(age,size,camemberts){
   sizedeviation<-size-(MeanBirthSize*meanGrowth^age)
@@ -242,7 +220,6 @@ setMethod("Food","Leprechaun",function(Object,Camams){
   return(Object)
 })
  
-
 ############### Function for printing values
 print_info<-function(YR=YR,ALIVE=ALIVE,CID=CID,camembert=camembert){
   cat("\nAt the beginning of year:",YR,"\nThere are:",length(ALIVE),"Leprechauns\n-----------------\n")
@@ -252,3 +229,14 @@ print_info<-function(YR=YR,ALIVE=ALIVE,CID=CID,camembert=camembert){
   return()
 }
 
+
+#function to write the dataframe
+### Everything should be written to a dataframe, to make sure we have all the values for ever and ever
+dfwrite<-function(pop=pop,ALIVE=ALIVE,DEAD=DEAD){
+  for(i in ALIVE){
+    cat("\n",YR,"\t",pop[[i]]@ID,"\t",pop[[i]]@size,"\t",pop[[i]]@bvs,"\t",pop[[i]]@hunting,"\t",pop[[i]]@bvh,"\t",pop[[i]]@camemberts,"\t",pop[[i]]@sex,"\t",pop[[i]]@ARS,"\t",pop[[i]]@age,"\t",pop[[i]]@pID[1],"\t",pop[[i]]@pID[2],"\t",1,file=filename,append=TRUE)
+  }
+  for(i in DEAD){
+    cat("\n",YR,"\t",pop[[i]]@ID,"\t",pop[[i]]@size,"\t",pop[[i]]@bvs,"\t",pop[[i]]@hunting,"\t",pop[[i]]@bvh,"\t",pop[[i]]@camemberts,"\t",pop[[i]]@sex,"\t",pop[[i]]@ARS,"\t",pop[[i]]@age,"\t",pop[[i]]@pID[1],"\t",pop[[i]]@pID[2],"\t",0,file=filename,append=TRUE)
+  }
+}
